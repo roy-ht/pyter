@@ -14,9 +14,48 @@ def diff_align(ref, hyp, wordmatch=True):
     """ aligning via difflib's SequenceMatcher
     this method is utility.
     """
-    s = difflib.SequenceMatcher(isjunk=(lambda x: x in ' \t') if wordmatch else None)
+    s = difflib.SequenceMatcher()
+    if wordmatch:
+        ref = ref.split()
+        hyp = hyp.split()
     s.set_seqs(ref, hyp)
-    return list(s.get_matching_blocks())
+    ## re formulate to string index
+    if wordmatch:
+        aligns = [(sum(len(x) + 1 for x in ref[:y]),
+                   sum(len(x) + 1 for x in hyp[:z]),
+                   sum(len(x) + 1 for x in ref[y:y + w]) - 1)
+                   for y, z, w in s.get_matching_blocks()]
+        return aligns
+    else:
+        return list(map(tuple, s.get_matching_blocks()))
+
+
+__all__ += ['pretty_print']
+def pretty_print(ref, hyp, aligns):
+    newref = ''
+    newhyp = ''
+    l = [(0, 0, 0)] + aligns
+    for s, e in zip(l[:-1], l[1:]):
+        rlen = _tospace(ref[s[0]:e[0]])
+        hlen = _tospace(hyp[s[1]:e[1]])
+        if s[2] > 0:
+            newref += ref[s[0]:s[0] + s[2]] + ' ' + ref[s[0] + s[2]:e[0]] + ' '
+            newhyp += hyp[s[1]:s[1] + s[2]] + ' ' + hyp[s[1] + s[2]:e[1]] + ' '
+        else:
+            newref += ref[s[0]:e[0]] + ' '
+            newhyp += hyp[s[1]:e[1]] + ' '
+        if rlen > hlen:
+            newhyp += ' ' * (rlen - hlen)
+        elif hlen > rlen:
+            newref += ' ' * (hlen - rlen)
+    return newref[:-1], newhyp[:-1]
+
+
+def _tospace(s):
+    r = 0
+    for c in s:
+        r += 2 if ord(c) > 255 else 1
+    return r
 
 __all__ += ['align']
 def align(ref, hyp, wordmatch=True):
