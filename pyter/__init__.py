@@ -5,13 +5,23 @@
 from __future__ import division
 import itertools as itrt
 import operator
+import difflib
 
-def ter_align(ref_input, hyp_input, wordmatch=True):
-    """ aligning via Translation Error Rate matching algorithm.
-    >>> ter_align(''
+def diff_align(ref, hyp, wordmatch=True):
+    """ aligning via difflib's SequenceMatcher
+    this method is utility.
     """
-    ref = _str2list(ref_input, wordmatch)
-    hyp = _str2list(hyp_input, wordmatch)
+    s = difflib.SequenceMatcher(isjunk=(lambda x: x in ' \t') if wordmatch else None)
+    s.set_seqs(ref, hyp)
+    return list(s.get_matching_blocks())
+
+def ter_align(ref, hyp, wordmatch=True):
+    """ aligning via Translation Error Rate matching algorithm.
+    >>> ter_align('A B C D E F', 'E F A C D B')
+    [(0, 4, 1), (2, 10, 1), (4, 6, 3), (8, 0, 3)]
+    """
+    ref = _str2list(ref, wordmatch)
+    hyp = _str2list(hyp, wordmatch)
     if len(ref) > len(hyp):
         hyp += [''] * (len(ref) - len(hyp))
     dist = lambda x, y: edit_distance(x, list(filter(None, y)))
