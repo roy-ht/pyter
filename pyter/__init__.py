@@ -6,10 +6,12 @@ from __future__ import division
 import itertools as itrt
 import operator
 
-def ter_align(ref, hyp, wordmatch=True):
-    """ aligning via Translation Error Rate matching algorithm. """
-    ref = _str2list(ref, wordmatch)
-    hyp = _str2list(hyp, wordmatch)
+def ter_align(ref_input, hyp_input, wordmatch=True):
+    """ aligning via Translation Error Rate matching algorithm.
+    >>> ter_align(''
+    """
+    ref = _str2list(ref_input, wordmatch)
+    hyp = _str2list(hyp_input, wordmatch)
     if len(ref) > len(hyp):
         hyp += [''] * (len(ref) - len(hyp))
     dist = lambda x, y: edit_distance(x, list(filter(None, y)))
@@ -41,7 +43,7 @@ def ter_align(ref, hyp, wordmatch=True):
         replaced_map = nrmap
         marks[csr] = hyp_mark
     ## do align
-    aligns = [[(x, x + len(y)), (y[0], y[-1] + 1)] for x, y in marks.items()]
+    aligns = [(x, y[0], len(y)) for x, y in marks.items()]
     hyp_indexes = set(range(len(hyp)))
     for _, l in marks.items():
         hyp_indexes -= set(l)
@@ -62,13 +64,19 @@ def ter_align(ref, hyp, wordmatch=True):
             continue
         for h_ep in range(h_sp + 1, len(hyp) + 1):
             if h_ep == len(hyp) or sp + h_ep - h_sp >= len(ref) or hyp[h_ep] != ref[sp + h_ep - h_sp]:
-                aligns.append([(sp, sp + h_ep - h_sp), (h_sp, h_ep)])
+                aligns.append((sp, h_sp, h_ep - h_sp))
                 sp += h_ep - h_sp
                 break
         else:
             assert(False)  # must not come here
-    alignes.sort()
-    return alignes
+    aligns.sort()
+    ## re formulate to string index
+    if wordmatch:
+        aligns = [(sum(len(x) + 1 for x in ref[:y]),
+                   sum(len(x) + 1 for x in hyp[:z]),
+                   sum(len(x) + 1 for x in ref[y:y + w]) - 1)
+                   for y, z, w in aligns]
+    return aligns
 
 def ter(ref, hyp, wordmatch=True):
     """Calcurate Translation Error Rate
