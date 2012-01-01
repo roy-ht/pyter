@@ -25,9 +25,9 @@ def diff_align(ref, hyp, wordmatch=True):
                    sum(len(x) + 1 for x in hyp[:z]),
                    sum(len(x) + 1 for x in ref[y:y + w]) - 1)
                    for y, z, w in s.get_matching_blocks()]
-        return aligns
+        return aligns[:-1]
     else:
-        return list(map(tuple, s.get_matching_blocks()))
+        return list(map(tuple, s.get_matching_blocks()))[:-1]
 
 
 __all__ += ['pretty_print']
