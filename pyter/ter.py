@@ -1,10 +1,10 @@
+from __future__ import division
 # -*- coding:utf-8 -*-
 """ Copyright (c) 2011 Hiroyuki Tanaka. All rights reserved."""
 
 # TODO: This syntax will be supported forever?
 from __future__ import division
 import itertools as itrt
-import operator
 import difflib
 
 __all__ = []
@@ -173,7 +173,7 @@ def _ter(ref, hyp, mtd):
     err = 0
     while True:
         (delta, hyp) = _shift(ref, hyp, mtd)
-        if delta == 0:
+        if not delta < 0:
             break
         err += 1
     return (err + mtd(ref, hyp)) / len(ref)
@@ -272,4 +272,50 @@ def diagonal_scanner(col_size, row_size, reverse=False):
             cursor[1] += 1
         else:
             cursor[0] += 1
-        
+
+
+if __name__ == '__main__':
+    import argparse             # new in Python 2.7!!
+    parser = argparse.ArgumentParser(
+        description='Translation Error Rate Evaluator',
+        epilog="If you have an UnicodeEncodeError, try to set 'PYTHONIOENCODING' to your environment variables."
+        )
+    parser.add_argument('-r', '--ref', help='Reference file', required=True)
+    parser.add_argument('-t', '--test', help='Test(Hypothesis) file', required=True)
+    parser.add_argument('-v', '--verbose', help='Show scores of each sentence.',
+                        action='store_true', default=False)
+    parser.add_argument('-g', '--glue', help='glue mode (one of the scoring algorithm)',
+                        action='store_true', default=False)
+    parser.add_argument('-w', '--word-match', help='Set matching unit as word (white space separated tokens)',
+                        action='store_true', default=False)
+    opts = parser.parse_args()
+    import codecs
+    import sys
+    sum_of_score, square_sum_of_score,  sentence_num = 0, 0, 0
+    izip = itrt.zip_longest if sys.hexversion > 0x0300 else itrt.izip_longest
+    score_method = ter_glue if opts.glue else ter
+    def stripper(fobj):
+        for line in fobj:
+            yield line.strip()
+    for ref, test in izip(stripper(codecs.open(opts.ref, 'r', 'utf-8')),
+                          stripper(codecs.open(opts.test, 'r', 'utf-8'))):
+        if not all((ref, test)):
+            continue
+        score = score_method(ref, test, wordmatch=opts.word_match)
+        sentence_num += 1
+        sum_of_score += score
+        square_sum_of_score += score ** 2
+        if opts.verbose:
+            print("ref: ", ref)
+            print("test:", test)
+            print('-----')
+            print("Sentence %d Score %.4f" % (sentence_num, score))
+    average = sum_of_score / sentence_num
+    square_sum = square_sum_of_score - sum_of_score ** 2 / sentence_num
+    variance = square_sum / (sentence_num - (1 if sentence_num > 1 else 0))
+    import math
+    stddev = math.sqrt(variance)
+    print("Average %.4f" % average)
+    print("Variance %.4f" % variance)
+    print("Standard Deviatioin %.4f" % stddev)
+    
