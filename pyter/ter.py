@@ -292,7 +292,7 @@ if __name__ == '__main__':
     import codecs
     import sys
     sum_of_score, square_sum_of_score,  sentence_num = 0, 0, 0
-    izip = itrt.zip_longest if sys.hexversion > 0x0300 else itrt.izip_longest
+    izip = itrt.zip_longest if sys.hexversion > 0x3000000 else itrt.izip_longest
     score_method = ter_glue if opts.glue else ter
     def stripper(fobj):
         for line in fobj:
@@ -306,8 +306,8 @@ if __name__ == '__main__':
         sum_of_score += score
         square_sum_of_score += score ** 2
         if opts.verbose:
-            print("ref: ", ref)
-            print("test:", test)
+            print("ref:  %s" % ref)
+            print("test: %s" % test)
             print('-----')
             print("Sentence %d Score %.4f" % (sentence_num, score))
     average = sum_of_score / sentence_num
