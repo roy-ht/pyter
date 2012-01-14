@@ -60,6 +60,7 @@ def _tospace(s):
 __all__ += ['align']
 def align(ref, hyp, wordmatch=True):
     """ aligning via Translation Error Rate matching algorithm.
+    TODO: Input must be unicode when Python2.x. No Warning or Error occured.
     >>> align('A B C D E F', 'E F A C D B')
     [(0, 4, 1), (2, 10, 1), (4, 6, 3), (8, 0, 3)]
     """
@@ -136,6 +137,7 @@ def ter(ref, hyp, wordmatch=True):
     """Calcurate Translation Error Rate
     if wordmatch is True, input sentences are regarded as space separeted word sequence.
     else, input sentences are matched with each characters.
+    TODO: Input must be unicode when Python2.x. No Warning or Error occured.
     >>> ref = 'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'
     >>> hyp = 'THIS WEEK THE SAUDIS denied information published in the new york times'
     >>> '%.3f' % ter(ref, hyp)
@@ -150,6 +152,7 @@ __all__ += ['ter_glue']
 def ter_glue(ref, hyp, wordmatch=True):
     """ When len(ref) > len(hyp), ter cannnot shift the words of ref[len(hyp):].
     ter_glue allow to add the "glue" in to the hyp, and remove this limitation.
+    TODO: Input must be unicode when Python2.x. No Warning or Error occured.
     >>> ref = 'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'
     >>> hyp = 'THIS WEEK THE SAUDIS denied information published in the new york times'
     >>> ter_glue(ref, hyp) == ter(ref, hyp)
@@ -306,9 +309,6 @@ if __name__ == '__main__':
         sum_of_score += score
         square_sum_of_score += score ** 2
         if opts.verbose:
-            print("ref:  %s" % ref)
-            print("test: %s" % test)
-            print('-----')
             print("Sentence %d Score %.4f" % (sentence_num, score))
     average = sum_of_score / sentence_num
     square_sum = square_sum_of_score - sum_of_score ** 2 / sentence_num
