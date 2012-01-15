@@ -66,6 +66,8 @@ Please type::
 ReleaseNote
 ===========
 
+v0.2
+  Replace normal DP based edit distance with cached version. A little performance improvement.
 v0.1.1
   Minor fix, and register to PyPi
 v0.1
