@@ -1,9 +1,8 @@
 from __future__ import division
 # -*- coding:utf-8 -*-
+# TODO: __future__ syntax will work forever?
 """ Copyright (c) 2011 Hiroyuki Tanaka. All rights reserved."""
 
-# TODO: This syntax will be supported forever?
-from __future__ import division
 import itertools as itrt
 import difflib
 
@@ -168,7 +167,7 @@ def ter_glue(ref, hyp, wordmatch=True):
 
 def _str2list(s, wordmatch=True):
     """ Split the string into list """
-    return s.split() if wordmatch else list(s)
+    return s.split(' ') if wordmatch else list(s)
         
 
 def _ter(ref, hyp, mtd):

@@ -6,15 +6,72 @@ pyter is a simple ffuzzy matching library using Translation Error Rate algorithm
 
 Currentry under development state.
 
+============
+Installation
+============
+::
+  
+  pip install pyter
+
+or checkout the repository::
+
+  git clone git://github.com/aflc/pyter.git
+  cd pyter
+  pip install -e .
+
+
+=====
+Usage
+=====
+
+------------------------------
+In Python code(Python2.x case)
+------------------------------
+import
+
+>>> import pyter
+
+get TER score
+
+>>> ref = u'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'
+>>> hyp = u'THIS WEEK THE SAUDIS denied information published in the new york times'
+>>> '%.3f' % pyter.ter(ref, hyp)
+'0.308'
+
+If you want to use a charactor based matching, disable wordmatch option
+
+>>> ref = u"Pythonは、より素早く、効果的にシステムとの統合が可能なプログラミング言語です。"
+>>> hyp = u"Pythonは、より迅速に動作するとより効果的にシステムを統合できるプログラミング言語です。"
+>>> '%.3f' % pyter.ter(ref, hyp, wordmatch=False)
+'0.357'
+>>> '%.3f' % pyter.ter(ref, hyp) ## maybe you don't want it
+'1.000'
+
+If you want to detect matching place
+
+>>> pyter.align('A B C D E F', 'E F A C D B')  ## wordmatch option is True by default.
+[(0, 4, 1), (2, 10, 1), (4, 6, 3), (8, 0, 3)]
+
+This format is the same as Python's difflib.SequenceMatcher.
+
+----------------------
+Command line interface
+----------------------
+Please type::
+
+  python -m pyter.ter --help
+
+
 ===========
 ReleaseNote
 ===========
 
-Not yet
+v0.1
+  Initial release
 
--------
+=======
 License
--------
+=======
 
 It is released under the MIT license.
 
