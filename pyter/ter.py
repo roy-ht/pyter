@@ -144,7 +144,9 @@ def ter(ref, hyp, wordmatch=True):
     """
     ref = _str2list(ref, wordmatch)
     hyp = _str2list(hyp, wordmatch)
-    return _ter(ref, hyp, edit_distance)
+    ed = FastEditDistance(ref)
+    return _ter(ref, hyp, ed)
+    # return _ter(ref, hyp, lambda x: edit_distance(ref, x))
 
 
 __all__ += ['ter_glue']
@@ -161,7 +163,7 @@ def ter_glue(ref, hyp, wordmatch=True):
     hyp = _str2list(hyp, wordmatch)
     if len(ref) > len(hyp):
         hyp += [''] * (len(ref) - len(hyp))
-    mtd = lambda x, y: edit_distance(x, list(filter(None, y)))
+    mtd = lambda x: edit_distance(ref, list(filter(None, x)))
     return _ter(ref, hyp, mtd)
 
 
@@ -178,19 +180,19 @@ def _ter(ref, hyp, mtd):
         if not delta < 0:
             break
         err += 1
-    return (err + mtd(ref, hyp)) / len(ref)
+    return (err + mtd(hyp)) / len(ref)
     
 
 def _shift(ref, hyp, mtd):
     """ Shift the phrase pair most reduce the edit_distance
     Return True shift occurred, else False.
     """
-    pre_score = mtd(ref, hyp)
+    pre_score = mtd(hyp)
     scores = []
     for csr, sp, ep in _iter_matches(ref, hyp):
         nhyp = hyp[:sp] + hyp[ep:]
         nhyp = nhyp[:csr] + hyp[sp:ep] + nhyp[csr:]
-        scores.append((mtd(ref, nhyp), nhyp))
+        scores.append((mtd(nhyp), nhyp))
     if not scores:
         return (0, hyp)
     scores.sort()
@@ -218,7 +220,6 @@ def _iter_matches(ref, hyp):
                 else:
                     # must break
                     assert(False)
-    
 
 
 __all__ += ['edit_distance']
@@ -239,42 +240,72 @@ def _gen_matrix(col_size, row_size, default=None):
     return [[default for _ in range(row_size)] for __ in range(col_size)]
 
 
-#################
-## not used now
-#################
+import bisect
 
-def diagonal_scanner(col_size, row_size, reverse=False):
-    """diagonal index access for a matrix
-    if reverse is True, Change scanning direction from left down to left up
-    >>> list(diagonal_scanner(2, 2))
-    [(0, 0), (0, 1), (1, 0), (1, 1)]
-    >>> list(diagonal_scanner(3, 2))
-    [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
-    >>> list(diagonal_scanner(2, 3))
-    [(0, 0), (0, 1), (1, 0), (0, 2), (1, 1), (1, 2)]
-    >>> list(diagonal_scanner(0, 1))
-    Traceback (most recent call last):
-        ...
-    ValueError: Argment 1 and 2 must be larger than 0.
-    >>> list(diagonal_scanner(2, 3, reverse=True))
-    [(1, 0), (1, 1), (0, 0), (1, 2), (0, 1), (0, 2)]
+__all__ += ['FastEditDistance']
+class FastEditDistance(object):
+    """<Experimental> Cached edit distance to calculate similar two strings.
+    ref and hyp must be list or string, not generetor.
+    Cache stored input hypothesis with each elements.
     """
-    stti, sttj = 0, 0
-    endi, endj = col_size, row_size
-    if stti >= endi or sttj >= endj:
-        raise ValueError("Argment 1 and 2 must be larger than 0.")
-    cursor = [0, 0]
-    while cursor[0] < endi and cursor[1] < endj:
-        for i in itrt.count():
-            r = (cursor[0] + i, cursor[1] - i)
-            yield (col_size - 1 - r[0], r[1]) if reverse else r
-            if r[0] == col_size - 1 or r[1] == 0:
-                break
-        if cursor[1] < row_size - 1:
-            cursor[1] += 1
-        else:
-            cursor[0] += 1
+    def __init__(self, ref):
+        self.ref = ref
+        self.cache_keys = []
+        self.cache_value = []
+        self.trivial_list = [list(range(len(ref) + 1))]
 
+    def __call__(self, hyp):
+        condition, resthyp = self._find_cache(hyp)
+        new_cache, score = self._edit_distance(resthyp, condition)
+        self._add_cache(new_cache, hyp)
+        return score
+
+    def _find_cache(self, hyp):
+        """find longest common prefix, and return prefix of hit cache
+        """
+        idx = bisect.bisect_left(self.cache_keys, hyp)
+        cplen_pre = 0 if idx == 0 else self._common_prefix_index(self.cache_keys[idx - 1], hyp)
+        cplen_pos = 0 if idx == len(self.cache_keys) else self._common_prefix_index(self.cache_keys[idx], hyp)
+        if cplen_pre > cplen_pos:
+            return self.cache_value[idx - 1][:cplen_pre + 1], hyp[cplen_pre:]
+        elif cplen_pre < cplen_pos:
+            return self.cache_value[idx][:cplen_pos + 1], hyp[cplen_pos:]
+        elif cplen_pre > 0:
+            return self.cache_value[idx - 1][:cplen_pre + 1], hyp[cplen_pre:]
+        return  self.trivial_list, hyp
+
+    def _add_cache(self, ncache, s):
+        """insert cache with sorted order, using binary search
+        """
+        idx = bisect.bisect_left(self.cache_keys, s)
+        if idx < len(self.cache_keys) - 1 and self.cache_keys[idx + 1] == s:
+            return              # don't have to add
+        self.cache_keys.insert(idx, s)
+        self.cache_value.insert(idx, ncache)
+
+    def _common_prefix_index(self, s, t):
+        """ Return end of common prefix index.
+        """
+        r = 0
+        for i in range(min(len(s), len(t))):
+            if s[i] != t[i]:
+                break
+            r += 1
+        return r
+
+    def _edit_distance(self, hyp, cond):
+        """ calculate edit distance.
+        """
+        offset = len(cond)
+        l = cond + [[None for _ in range(len(self.ref) + 1)] for __ in range(len(hyp))]
+        for i, j in itrt.product(range(offset, offset + len(hyp)), range(len(self.ref) + 1)):
+            if j == 0:
+                l[i][j] = l[i - 1][j] + 1
+            else:
+                l[i][j] = min(l[i - 1][j] + 1,
+                              l[i][j - 1] + 1,
+                              l[i - 1][j - 1] + (0 if hyp[i - offset] == self.ref[j - 1] else 1))
+        return l, l[-1][-1]
 
 if __name__ == '__main__':
     import argparse             # new in Python 2.7!!
@@ -318,3 +349,40 @@ if __name__ == '__main__':
     print("Variance %.4f" % variance)
     print("Standard Deviatioin %.4f" % stddev)
     
+    
+#################
+## not used now
+#################
+
+def diagonal_scanner(col_size, row_size, reverse=False):
+    """diagonal index access for a matrix
+    if reverse is True, Change scanning direction from left down to left up
+    >>> list(diagonal_scanner(2, 2))
+    [(0, 0), (0, 1), (1, 0), (1, 1)]
+    >>> list(diagonal_scanner(3, 2))
+    [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
+    >>> list(diagonal_scanner(2, 3))
+    [(0, 0), (0, 1), (1, 0), (0, 2), (1, 1), (1, 2)]
+    >>> list(diagonal_scanner(0, 1))
+    Traceback (most recent call last):
+        ...
+    ValueError: Argment 1 and 2 must be larger than 0.
+    >>> list(diagonal_scanner(2, 3, reverse=True))
+    [(1, 0), (1, 1), (0, 0), (1, 2), (0, 1), (0, 2)]
+    """
+    stti, sttj = 0, 0
+    endi, endj = col_size, row_size
+    if stti >= endi or sttj >= endj:
+        raise ValueError("Argment 1 and 2 must be larger than 0.")
+    cursor = [0, 0]
+    while cursor[0] < endi and cursor[1] < endj:
+        for i in itrt.count():
+            r = (cursor[0] + i, cursor[1] - i)
+            yield (col_size - 1 - r[0], r[1]) if reverse else r
+            if r[0] == col_size - 1 or r[1] == 0:
+                break
+        if cursor[1] < row_size - 1:
+            cursor[1] += 1
+        else:
+            cursor[0] += 1
+
