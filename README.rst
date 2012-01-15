@@ -66,6 +66,8 @@ Please type::
 ReleaseNote
 ===========
 
+v0.1.1
+  Minor fix, and register to PyPi
 v0.1
   Initial release
 
