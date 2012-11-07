@@ -23,7 +23,6 @@ def preprocess_en(s):
     s = s.replace(u'U . S .', u'U.S.')
     return s
 
-
 def preprocess_ja(s):
     s = s.rstrip()  # trail space, tab, newlineの削除
     s = unicodedata.normalize('NFKC', s)  # まず正規化
@@ -33,3 +32,28 @@ def preprocess_ja(s):
 def preprocess(s, lang):
     funcname = 'preprocess_{0}'.format(lang)
     return globals()[funcname](s)
+
+
+def split(s, lang):
+    if lang == 'ja':
+        return list(s)
+    else:
+        return s.split()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
