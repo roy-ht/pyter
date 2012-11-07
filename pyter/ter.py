@@ -1,5 +1,5 @@
-from __future__ import division
 # -*- coding:utf-8 -*-
+from __future__ import division
 # TODO: __future__ syntax will work forever?
 """ Copyright (c) 2011 Hiroyuki Tanaka. All rights reserved."""
 
@@ -170,7 +170,7 @@ def ter_glue(ref, hyp, wordmatch=True):
 def _str2list(s, wordmatch=True):
     """ Split the string into list """
     return s.split(' ') if wordmatch else list(s)
-        
+
 
 def _ter(ref, hyp, mtd):
     """ Translation Erorr Rate core function """
@@ -181,7 +181,7 @@ def _ter(ref, hyp, mtd):
             break
         err += 1
     return (err + mtd(hyp)) / len(ref)
-    
+
 
 def _shift(ref, hyp, mtd):
     """ Shift the phrase pair most reduce the edit_distance
@@ -348,8 +348,8 @@ if __name__ == '__main__':
     print("Average %.4f" % average)
     print("Variance %.4f" % variance)
     print("Standard Deviatioin %.4f" % stddev)
-    
-    
+
+
 #################
 ## not used now
 #################
@@ -385,4 +385,3 @@ def diagonal_scanner(col_size, row_size, reverse=False):
             cursor[1] += 1
         else:
             cursor[0] += 1
-
