@@ -25,6 +25,7 @@ def preprocess_en(s):
 
 
 def preprocess_ja(s):
+    s = s.rstrip()  # trail space, tab, newlineの削除
     s = unicodedata.normalize('NFKC', s)  # まず正規化
     return s
 
