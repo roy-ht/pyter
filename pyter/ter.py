@@ -132,94 +132,78 @@ def align(ref, hyp, wordmatch=True):
     return aligns
 
 __all__ += ['ter']
-def ter(ref, hyp, wordmatch=True):
+def ter(inputwords, refwords):
     """Calcurate Translation Error Rate
-    if wordmatch is True, input sentences are regarded as space separeted word sequence.
-    else, input sentences are matched with each characters.
-    TODO: Input must be unicode when Python2.x. No Warning or Error occured.
-    >>> ref = 'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'
-    >>> hyp = 'THIS WEEK THE SAUDIS denied information published in the new york times'
-    >>> '%.3f' % ter(ref, hyp)
+    inputwords and refwords are both list object.
+    >>> ref = 'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'.split()
+    >>> hyp = 'THIS WEEK THE SAUDIS denied information published in the new york times'.split()
+    >>> '{0:3f}'.format(ter(ref, hyp))
     '0.308'
     """
-    ref = _str2list(ref, wordmatch)
-    hyp = _str2list(hyp, wordmatch)
-    ed = FastEditDistance(ref)
-    return _ter(ref, hyp, ed)
-    # return _ter(ref, hyp, lambda x: edit_distance(ref, x))
+    inputwords, refwords = list(inputwords), list(refwords)
+    ed = FastEditDistance(refwords)
+    return _ter(inputwords, refwords, ed)
 
 
 __all__ += ['ter_glue']
-def ter_glue(ref, hyp, wordmatch=True):
+def ter_glue(inputwords, refwords):
     """ When len(ref) > len(hyp), ter cannnot shift the words of ref[len(hyp):].
-    ter_glue allow to add the "glue" in to the hyp, and remove this limitation.
-    TODO: Input must be unicode when Python2.x. No Warning or Error occured.
-    >>> ref = 'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'
-    >>> hyp = 'THIS WEEK THE SAUDIS denied information published in the new york times'
+    ter_glue allow to add the "glue" in to the hyp, and remove above limitation.
+    >>> ref = 'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'.split()
+    >>> hyp = 'THIS WEEK THE SAUDIS denied information published in the new york times'.split()
     >>> ter_glue(ref, hyp) == ter(ref, hyp)
     True
     """
-    ref = _str2list(ref, wordmatch)
-    hyp = _str2list(hyp, wordmatch)
-    if len(ref) > len(hyp):
-        hyp += [''] * (len(ref) - len(hyp))
-    mtd = lambda x: edit_distance(ref, list(filter(None, x)))
-    return _ter(ref, hyp, mtd)
+    inputwords, refwords = list(inputwords), list(refwords)
+    if len(inputwords) > len(refwords):
+        inputwords += [''] * (len(refwords) - len(inputwords))
+    mtd = lambda x: edit_distance(refwords, list(filter(None, x)))
+    return _ter(refwords, inputwords, mtd)
 
 
-def _str2list(s, wordmatch=True):
-    """ Split the string into list """
-    return s.split(' ') if wordmatch else list(s)
-
-
-def _ter(ref, hyp, mtd):
+def _ter(iwords, rwords, mtd):
     """ Translation Erorr Rate core function """
     err = 0
     while True:
-        (delta, hyp) = _shift(ref, hyp, mtd)
+        (delta, iwords) = _shift(iwords, rwords, mtd)
         if not delta < 0:
             break
         err += 1
-    return (err + mtd(hyp)) / len(ref)
+    return (err + mtd(iwords)) / len(rwords)
 
 
-def _shift(ref, hyp, mtd):
+def _shift(iwords, rwords, mtd):
     """ Shift the phrase pair most reduce the edit_distance
     Return True shift occurred, else False.
     """
-    pre_score = mtd(hyp)
+    pre_score = mtd(iwords)
     scores = []
-    for csr, sp, ep in _iter_matches(ref, hyp):
-        nhyp = hyp[:sp] + hyp[ep:]
-        nhyp = nhyp[:csr] + hyp[sp:ep] + nhyp[csr:]
-        scores.append((mtd(nhyp), nhyp))
+    for isp, rsp, length in _findpairs(iwords, rwords):
+        shifted_words = iwords[:isp] + iwords[isp + length:]
+        shifted_words[rsp:rsp] = iwords[isp:isp + length]
+        scores.append((pre_score - mtd(shifted_words), shifted_words))
     if not scores:
-        return (0, hyp)
+        return (0, [])
     scores.sort()
-    return (scores[0][0] - pre_score, scores[0][1]) if scores[0][0] < pre_score else (0, hyp)
+    return scores[0]
 
 
-def _iter_matches(ref, hyp):
-    """ yield the tuple of (ref_start_point, hyp_start_point, hyp_end_point)
-    for all possible shiftings.
+def _findpairs(ws1, ws2):
+    u""" yield the tuple of (ws1_start_point, ws2_start_point, length)
+    So ws1[ws1_start_point:ws1_start_point+length] == ws2[ws2_start_point:ws2_start_point+length]
     """
-    # refの位置に置き換えるのだから、短い方のsequenceに合わせる
-    maxlen = min(len(ref), len(hyp))
-    for csr in range(maxlen):
-        # already aligned
-        if ref[csr] == hyp[csr]:
-            continue
-        # search start point
-        for sp in range(maxlen):
-            if csr != sp and ref[csr] == hyp[sp]:
-                # found start point of matched phrase
-                for ep in range(sp + 1, maxlen + 1):
-                    if ep == maxlen or csr + ep - sp == len(ref) or ref[csr + ep - sp] != hyp[ep]:
-                        yield (csr, sp, ep)
-                        break
+    for i1, i2 in itrt.product(range(len(ws1), range(len(ws2)))):
+        if i1 == i2:
+            continue  # take away if there is already in the same position
+        if ws1[i1] == ws2[i2]:
+            # counting
+            length = 0
+            for j in range(i1 + 1, len(ws1)):
+                if j < len(ws2) and ws1[j] == ws2[j]:
+                    length += 1
                 else:
-                    # must break
-                    assert(False)
+                    break
+            yield (i1, i2, length)
 
 
 __all__ += ['edit_distance']
