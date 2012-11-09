@@ -6,41 +6,17 @@ import bisect
 from pyter import util
 
 
-def align(iwords, rwords):
-    """ aligning via Translation Error Rate matching algorithm.
-    >>> align('A B C D E F'.split(), 'E F A C D B'.split())
-    [(0, 4, 1), (2, 10, 1), (4, 6, 3), (8, 0, 3)]
-    """
-    pass
-
-
 def ter(inputwords, refwords):
     """Calcurate Translation Error Rate
     inputwords and refwords are both list object.
     >>> ref = 'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'.split()
     >>> hyp = 'THIS WEEK THE SAUDIS denied information published in the new york times'.split()
-    >>> '{0:3f}'.format(ter(ref, hyp))
+    >>> '{0:.3f}'.format(ter(hyp, ref))
     '0.308'
     """
     inputwords, refwords = list(inputwords), list(refwords)
     ed = FastEditDistance(refwords)
     return _ter(inputwords, refwords, ed)
-
-
-
-def ter_glue(inputwords, refwords):
-    """ When len(ref) > len(hyp), ter cannnot shift the words of ref[len(hyp):].
-    ter_glue allow to add the "glue" in to the hyp, and remove above limitation.
-    >>> ref = 'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'.split()
-    >>> hyp = 'THIS WEEK THE SAUDIS denied information published in the new york times'.split()
-    >>> ter_glue(ref, hyp) == ter(ref, hyp)
-    True
-    """
-    inputwords, refwords = list(inputwords), list(refwords)
-    if len(inputwords) > len(refwords):
-        inputwords += [''] * (len(refwords) - len(inputwords))
-    mtd = lambda x: edit_distance(refwords, list(filter(None, x)))
-    return _ter(refwords, inputwords, mtd)
 
 
 def _ter(iwords, rwords, mtd):
@@ -189,8 +165,6 @@ def parse_args():
     parser.add_argument('-i', '--input', help='Input(test) file', required=True)
     parser.add_argument('-v', '--verbose', help='Show scores of each sentence.',
                         action='store_true', default=False)
-    parser.add_argument('-g', '--glue', help='glue mode (one of the scoring algorithm)',
-                        action='store_true', default=False)
     parser.add_argument('-l', '--lang', choices=['ja', 'en'], default='en', help='Language')
     parser.add_argument('--force-token-mode', action='store_true', default=False, help='Use a space separated word as a unit')
     return parser.parse_args()
@@ -208,14 +182,13 @@ def main():
         print("Error: input file has {0} lines, but reference has {1} lines.".format(len(ilines), len(rlines)))
         sys.exit(1)
     scores = []
-    score_method = ter_glue if args.glue else ter
     for lineno, (rline, iline) in enumerate(itertools.izip(ilines, rlines), start=1):
         if args.force_token_mode:
             rline, iline = rline.split(), iline.split()
         else:
             rline, iline = util.split(rline, args.lang), util.split(iline, args.lang)
         # iline, rline are list object
-        score = score_method(iline, rline)
+        score = ter(iline, rline)
         scores.append(score)
         if args.verbose:
             print("Sentence {0}: {1:.4f}".format(lineno, score))
