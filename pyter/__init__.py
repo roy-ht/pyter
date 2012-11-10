@@ -2,7 +2,6 @@
 from __future__ import division, print_function
 """ Copyright (c) 2011 Hiroyuki Tanaka. All rights reserved."""
 import itertools as itrt
-import bisect
 from pyter import util
 
 
@@ -15,7 +14,7 @@ def ter(inputwords, refwords):
     '0.308'
     """
     inputwords, refwords = list(inputwords), list(refwords)
-    ed = FastEditDistance(refwords)
+    ed = CachedEditDistance(refwords)
     return _ter(inputwords, refwords, ed)
 
 
@@ -89,70 +88,67 @@ def edit_distance(s, t):
     return l[-1][-1]
 
 
-
-class FastEditDistance(object):
-    """<Experimental> Cached edit distance to calculate similar two strings.
-    ref and hyp must be list or string, not generetor.
-    Cache stored input hypothesis with each elements.
+class CachedEditDistance(object):
+    u""" 編集距離のキャッシュ版
+    一回計算した途中結果を保存しておいて再利用する
+    以前計算したリストをtrie木で保存して、重複する演算を省略する
+    trieはネストした辞書で表現し、値に[次の辞書, キャッシュされた値]の長さ２のリストを用いる
+    比較する対象はリスト化されている必要がある。
     """
-    def __init__(self, ref):
-        self.ref = ref
-        self.cache_keys = []
-        self.cache_value = []
-        self.trivial_list = [list(range(len(ref) + 1))]
+    def __init__(self, rwords):
+        self.rwds = rwords
+        self._cache = {}
+        self.list_for_copy = [0 for _ in range(len(self.rwds) + 1)]
 
-    def __call__(self, hyp):
-        condition, resthyp = self._find_cache(hyp)
-        new_cache, score = self._edit_distance(resthyp, condition)
-        self._add_cache(new_cache, hyp)
+    def __call__(self, iwords):
+        start_position, cached_score = self._find_cache(iwords)
+        score, newly_created_matrix = self._edit_distance(iwords, start_position, cached_score)
+        self._add_cache(iwords, newly_created_matrix)  # もう一度たどって、キャッシュがないノードにキャッシュを挿入していく
         return score
 
-    def _find_cache(self, hyp):
-        """find longest common prefix, and return prefix of hit cache
+    def _edit_distance(self, iwords, spos, cache):
+        u""" sposが0の場合はキャッシュなし。
         """
-        idx = bisect.bisect_left(self.cache_keys, hyp)
-        cplen_pre = 0 if idx == 0 else self._common_prefix_index(self.cache_keys[idx - 1], hyp)
-        cplen_pos = 0 if idx == len(self.cache_keys) else self._common_prefix_index(self.cache_keys[idx], hyp)
-        if cplen_pre > cplen_pos:
-            return self.cache_value[idx - 1][:cplen_pre + 1], hyp[cplen_pre:]
-        elif cplen_pre < cplen_pos:
-            return self.cache_value[idx][:cplen_pos + 1], hyp[cplen_pos:]
-        elif cplen_pre > 0:
-            return self.cache_value[idx - 1][:cplen_pre + 1], hyp[cplen_pre:]
-        return  self.trivial_list, hyp
-
-    def _add_cache(self, ncache, s):
-        """insert cache with sorted order, using binary search
-        """
-        idx = bisect.bisect_left(self.cache_keys, s)
-        if idx < len(self.cache_keys) - 1 and self.cache_keys[idx + 1] == s:
-            return              # don't have to add
-        self.cache_keys.insert(idx, s)
-        self.cache_value.insert(idx, ncache)
-
-    def _common_prefix_index(self, s, t):
-        """ Return end of common prefix index.
-        """
-        r = 0
-        for i in range(min(len(s), len(t))):
-            if s[i] != t[i]:
-                break
-            r += 1
-        return r
-
-    def _edit_distance(self, hyp, cond):
-        """ calculate edit distance.
-        """
-        offset = len(cond)
-        l = cond + [[None for _ in range(len(self.ref) + 1)] for __ in range(len(hyp))]
-        for i, j in itrt.product(range(offset, offset + len(hyp)), range(len(self.ref) + 1)):
+        if cache is None:
+            cache = [tuple(range(len(self.rwds) + 1))]
+        else:
+            cache = [cache] # 一つのrowにする
+        l = cache + [list(self.list_for_copy) for _ in range(len(iwords) - spos)]
+        # 先頭はキャッシュなので飛ばす。iwordsはsposから、lは1から計算
+        assert len(l) - 1 == len(iwords) - spos
+        for i, j in itrt.product(range(1, len(iwords) - spos + 1), range(len(self.rwds) + 1)):
             if j == 0:
                 l[i][j] = l[i - 1][j] + 1
             else:
                 l[i][j] = min(l[i - 1][j] + 1,
                               l[i][j - 1] + 1,
-                              l[i - 1][j - 1] + (0 if hyp[i - offset] == self.ref[j - 1] else 1))
-        return l, l[-1][-1]
+                              l[i - 1][j - 1] + (0 if iwords[spos + i - 1] == self.rwds[j - 1] else 1))
+        return l[-1][-1], l[1:]
+
+    def _add_cache(self, iwords, mat):
+        node = self._cache
+        skipnum = len(iwords) - len(mat)
+        for i in range(skipnum):
+            node = node[iwords[i]][0]
+        assert len(iwords[skipnum:]) == len(mat)
+        for word, row in itrt.izip(iwords[skipnum:], mat):
+            if word not in node:
+                node[word] = [{}, None]
+            value = node[word]
+            if value[1] is None:
+                value[1] = tuple(row)
+            node = value[0]  # nodeを一つ掘り下げる(drill down)
+
+    def _find_cache(self, iwords):
+        node = self._cache
+        start_position, row = 0, None
+        for idx, word in enumerate(iwords):
+            if word in node:
+                start_position = idx + 1
+                node, row = node[word] # rowに値を入れておいて、
+            else:
+                break
+        return start_position, row
 
 
 def parse_args():
