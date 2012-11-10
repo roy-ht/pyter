@@ -47,13 +47,6 @@ If you want to use a charactor based matching, disable wordmatch option
 >>> '%.3f' % pyter.ter(ref, hyp) ## maybe you don't want it
 '1.000'
 
-If you want to detect matching place
-
->>> pyter.align('A B C D E F', 'E F A C D B')  ## wordmatch option is True by default.
-[(0, 4, 1), (2, 10, 1), (4, 6, 3), (8, 0, 3)]
-
-This format is the same as Python's difflib.SequenceMatcher.
-
 ----------------------
 Command line interface
 ----------------------
@@ -66,12 +59,15 @@ Please type::
 ReleaseNote
 ===========
 
+v0.2.1
+   * New CLI interface
+   * Refactoring the whole code
 v0.2
-  Replace normal DP based edit distance with cached version. A little performance improvement.
+   * Replace normal DP based edit distance with cached version. A little performance improvement.
 v0.1.1
-  Minor fix, and register to PyPi
+   * Minor fix, and register to PyPi
 v0.1
-  Initial release
+   * Initial release
 
 =======
 License
