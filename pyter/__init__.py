@@ -25,14 +25,15 @@ def _ter(iwords, rwords, mtd):
     # print('[R]', u' '.join(rwords))
     # print('[ED]', mtd(iwords))
     while True:
-        (delta, iwords) = _shift(iwords, rwords, mtd)
+        delta, new_iwords = _shift(iwords, rwords, mtd)
         # print('[I]', u' '.join(iwords))
         # print('[R]', u' '.join(rwords))
         # print('[ED]', mtd(iwords))
         if delta <= 0:
             break
         err += 1
-    # print(err, mtd(iwords), len(rwords), (err + mtd(iwords)) / len(rwords))
+        iwords = new_iwords
+    print(err, mtd(iwords), len(rwords), (err + mtd(iwords)) / len(rwords))
     return (err + mtd(iwords)) / len(rwords)
 
 
@@ -62,9 +63,8 @@ def _findpairs(ws1, ws2):
         if ws1[i1] == ws2[i2]:
             # counting
             length = 1
-            for j in range(1, len(ws1) - i1):
-                j1, j2 = i1 + j, i2 + j
-                if j2 < len(ws2) and ws1[j1] == ws2[j2]:
+            for j1, j2 in itrt.izip(range(i1 + 1, len(ws1)), range(i2 + 1, len(ws2))):
+                if ws1[j1] == ws2[j2]:
                     length += 1
                 else:
                     break
