@@ -2,7 +2,7 @@
 pyter
 =====
 
-pyter is a simple ffuzzy matching library using Translation Error Rate algorithm.
+pyter is a simple Translation Error Rate evaluation command.
 
 Currentry under development state.
 
@@ -10,7 +10,7 @@ Currentry under development state.
 Installation
 ============
 ::
-  
+
   pip install pyter
 
 or checkout the repository::
@@ -31,28 +31,26 @@ import
 
 >>> import pyter
 
-get TER score
+To get a TER score, both hypothesis sentence and reference sentence have to a list of word.
 
->>> ref = u'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'
->>> hyp = u'THIS WEEK THE SAUDIS denied information published in the new york times'
->>> '%.3f' % pyter.ter(ref, hyp)
+>>> ref = u'SAUDI ARABIA denied THIS WEEK information published in the AMERICAN new york times'.split()
+>>> hyp = u'THIS WEEK THE SAUDIS denied information published in the new york times'.split()
+>>> '%.3f' % pyter.ter(hyp, ref)
 '0.308'
 
-If you want to use a charactor based matching, disable wordmatch option
+If you want to use a charactor based matching, write a code like that.
 
->>> ref = u"Pythonは、より素早く、効果的にシステムとの統合が可能なプログラミング言語です。"
->>> hyp = u"Pythonは、より迅速に動作するとより効果的にシステムを統合できるプログラミング言語です。"
->>> '%.3f' % pyter.ter(ref, hyp, wordmatch=False)
+>>> ref = list(u"Pythonは、より素早く、効果的にシステムとの統合が可能なプログラミング言語です。")
+>>> hyp = list(u"Pythonは、より迅速に動作するとより効果的にシステムを統合できるプログラミング言語です。")
+>>> '%.3f' % pyter.ter(hyp, ref)
 '0.357'
->>> '%.3f' % pyter.ter(ref, hyp) ## maybe you don't want it
-'1.000'
 
 ----------------------
 Command line interface
 ----------------------
 Please type::
 
-  python -m pyter.ter --help
+  pyter --help
 
 
 ===========
@@ -62,6 +60,7 @@ ReleaseNote
 v0.2.1
    * New CLI interface
    * Refactoring the whole code
+   * **This version is incompatible with the previous version.**
 v0.2
    * Replace normal DP based edit distance with cached version. A little performance improvement.
 v0.1.1

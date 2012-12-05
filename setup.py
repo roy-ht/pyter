@@ -14,7 +14,7 @@ if sys.hexversion < 0x2070000:
     install_requires += ['argparse']
 setup(name='pyter',
       version='0.2.1',
-      description='Simple ffuzzy matching library using Translation Error Rate algorithm',
+      description='Simple library to evaluate the Translation Error Rate',
       long_description=read('README.rst'),
       author='Hiroyuki Tanaka',
       author_email='aflc0x@gmail.com',
