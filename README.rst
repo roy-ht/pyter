@@ -57,6 +57,9 @@ Please type::
 ReleaseNote
 ===========
 
+v0.2.2
+   * fixed #1, invalid scoreing.
+
 v0.2.1
    * New CLI interface
    * Refactoring the whole code
