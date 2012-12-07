@@ -57,6 +57,9 @@ Please type::
 ReleaseNote
 ===========
 
+v0.2.2.1
+   * bugfix release
+
 v0.2.2
    * fixed #1, invalid scoreing.
 
