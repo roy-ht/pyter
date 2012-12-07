@@ -33,7 +33,6 @@ def _ter(iwords, rwords, mtd):
             break
         err += 1
         iwords = new_iwords
-    print(err, mtd(iwords), len(rwords), (err + mtd(iwords)) / len(rwords))
     return (err + mtd(iwords)) / len(rwords)
 
 
