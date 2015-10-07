@@ -38,7 +38,7 @@ To get a TER score, both hypothesis sentence and reference sentence have to a li
 >>> '%.3f' % pyter.ter(hyp, ref)
 '0.308'
 
-If you want to use a charactor based matching, write a code like that.
+If you want to use a character based matching, write a code like that.
 
 >>> ref = list(u"Pythonは、より素早く、効果的にシステムとの統合が可能なプログラミング言語です。")
 >>> hyp = list(u"Pythonは、より迅速に動作するとより効果的にシステムを統合できるプログラミング言語です。")
