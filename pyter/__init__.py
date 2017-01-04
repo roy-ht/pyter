@@ -2,7 +2,7 @@
 from __future__ import division, print_function
 """ Copyright (c) 2011 Hiroyuki Tanaka. All rights reserved."""
 import itertools as itrt
-from tools.pyter import util
+from pyter import util
 
 
 def ter(inputwords, refwords):
