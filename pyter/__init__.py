@@ -62,7 +62,7 @@ def _findpairs(ws1, ws2):
         if ws1[i1] == ws2[i2]:
             # counting
             length = 1
-            for j1, j2 in itrt.izip(range(i1 + 1, len(ws1)), range(i2 + 1, len(ws2))):
+            for j1, j2 in zip(range(i1 + 1, len(ws1)), range(i2 + 1, len(ws2))):
                 if ws1[j1] == ws2[j2]:
                     length += 1
                 else:
@@ -130,7 +130,7 @@ class CachedEditDistance(object):
         for i in range(skipnum):
             node = node[iwords[i]][0]
         assert len(iwords[skipnum:]) == len(mat)
-        for word, row in itrt.izip(iwords[skipnum:], mat):
+        for word, row in zip(iwords[skipnum:], mat):
             if word not in node:
                 node[word] = [{}, None]
             value = node[word]
